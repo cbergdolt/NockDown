@@ -23,15 +23,14 @@ class GameSpace():
 		# Initialize window settings
 		pygame.init()
 		pygame.key.set_repeat(100, 30)
-		self.back = 30, 144, 255
+		self.black = 30, 144, 255
 		self.size = self.width, self.height = 640, 480
 		self.screen = pygame.display.set_mode(self.size)
 
 		# Initialize game objects
 		self.clock = pygame.time.Clock()
-		self.background = Background(self)
 		self.myAvatar = Avatar(self)
-		self.sprites = [self.background, self.myAvatar]
+		self.sprites = [self.myAvatar]
 		self.allsprites = pygame.sprite.RenderPlain(self.sprites)
 
 	def loop(self):
@@ -44,20 +43,11 @@ class GameSpace():
 
 		# Update screen
 		self.allsprites.update()
-		self.screen.fill(self.back)
+		self.screen.fill(self.black)
 		for i in self.sprites:
 			self.screen.blit(i.image, i.rect)
 		self.allsprites.draw(self.screen)
-		pygame.display.flip()
-
-# BACKGROUND
-class Background(pygame.sprite.Sprite):
-	def __init__(self, gs):
-		pygame.sprite.Sprite.__init__(self)
-		self.image, self.rect = load_image('images/booth2.jpg')
-		self.rect.topleft = 0, 0
-	def tick(self):
-		i = 1
+		pygame.display.flip
 
 # AVATAR CLASS
 class Avatar(pygame.sprite.Sprite):
@@ -96,6 +86,6 @@ class PlayerConnectionFactory(ClientFactory):
 
 if __name__ == "__main__":
 	p2Con = PlayerConnectionFactory()
-	reactor.connectTCP("ash.campus.nd.edu", 40403, p2Con)
+	reactor.connectTCP("ash.campus.nd.edu", 40402, p2Con)
 	reactor.run()
 

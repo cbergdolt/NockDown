@@ -22,7 +22,7 @@ class GameSpace():
 		# Initialize window settings
 		pygame.init()
 		pygame.key.set_repeat(100, 30)
-		self.back = 30, 144, 255 
+		self.back = 255, 255, 255 
 		self.size = self.width, self.height = 640, 480
 		self.screen = pygame.display.set_mode(self.size)
 		
@@ -55,7 +55,7 @@ class GameSpace():
 class Background(pygame.sprite.Sprite):
 	def __init__(self, gs):
 		pygame.sprite.Sprite.__init__(self)
-		self.image, self.rect = load_image('images/clouds.jpg')
+		self.image, self.rect = load_image('images/booth.jpg')
 		self.rect.topleft = 0, 0
 	def tick(self):
 		i = 1
@@ -64,7 +64,7 @@ class Background(pygame.sprite.Sprite):
 class Avatar(pygame.sprite.Sprite):
 	def __init__(self, gs):
 		pygame.sprite.Sprite.__init__(self)
-		self.image, self.rect = load_image('images/globe.png')
+		self.image, self.rect = load_image('images/greensquare.png')
 		self.rect.topleft = 10, 10
 
 	def tick(self):
@@ -97,7 +97,7 @@ class PlayerConnectionFactory(Factory):
 
 if __name__ == '__main__':
 	p1Con = PlayerConnectionFactory()
-	reactor.listenTCP(40402, p1Con)
+	reactor.listenTCP(40403, p1Con)
 	reactor.run()
 
 
