@@ -15,9 +15,10 @@ def load_image(name):
 
 # GAMESPACE
 class GameSpace():
-    def __init__(self, p1Con):
+    def __init__(self, p1Con, reactor):
 	# Add network connection
     	self.p1Con = p1Con
+        self.reactor = reactor
 
 	# Initialize window settings
 	pygame.init()
@@ -30,73 +31,87 @@ class GameSpace():
 	# Initialize game objects
 	self.clock = pygame.time.Clock()
 	self.background = Background(self)
-	self.myAvatar = Avatar(self)
-	self.sprites = [self.background, self.myAvatar] # contains list of objects
+	self.myAvatar = Avatar(self, 'images/globe.png', 10, 20, 1) #1 indicates ownership
+        self.enemyAvatar = Avatar(self, 'images/greensquare.png', 10, 10, 0)
+	self.sprites = [self.enemyAvatar, self.myAvatar] # contains list of objects
 	self.allsprites = pygame.sprite.RenderPlain(self.sprites)
+
+        # start event "loop"
+        self.reactor.callLater(1/60, self.loop)
 		
     def loop(self):
-        self.p1Con.transport.write("looping")
 	for event in pygame.event.get():
 	    if event.type == QUIT:
 		pygame.quit()
-		sys.exit()
+	        os._exit(0)
 	    if event.type == KEYDOWN:
-                print 'player1: button pressed'
-#		self.p1Con.transport.write('button pressed')
                 if event.key == pygame.K_LEFT:
-                    self.MyAvatar.move(-5) #move left
+                    self.myAvatar.move(self.myAvatar.rect.x - 5) #move left
+#   Not sure if we want to do the write here or in tick (where it is now)
+#       it doesn't need to happen more often than here, but in the spirit of
+#       the clock-tick paradigm, it might be better to leave it in tick?
+#                    myPos = 'enemy='+str(self.myAvatar.rect.x)
+#                    self.p1Con.transport.write(myPos)
                 elif event.key == pygame.K_RIGHT:
-                    self.MyAvatar.move(5) #move right
+                    self.myAvatar.move(self.myAvatar.rect.x + 5) #move right
+#                    myPos = 'enemy='+str(self.myAvatar.rect.x)
+#                    self.p1Con.transport.write(myPos)
 #                elif event.key == pygame.K_SPACE:
                     #fire
 	for sprite in self.sprites:
 	    sprite.tick()
 
 	# Update screen
-	self.allsprites.update()
 	self.screen.fill(self.back)
+        self.screen.blit(self.background.image, self.background.rect)
 	for i in self.sprites:
 	    self.screen.blit(i.image, i.rect)
-	self.allsprites.draw(self.screen)
 	pygame.display.flip()
 
-#        reactor.callLater(1/60, self.loop)
+        self.reactor.callLater(1/60, self.loop)
 		
 # BACKGROUND
 class Background(pygame.sprite.Sprite):
     def __init__(self, gs):
+        self.gs = gs
 	pygame.sprite.Sprite.__init__(self)
 	self.image, self.rect = load_image('images/booth.jpg')
 	self.rect.topleft = 0, 0
     def tick(self):
-	i = 1
+	pass
 
 # AVATAR CLASS
 class Avatar(pygame.sprite.Sprite):
-    def __init__(self, gs):
+    def __init__(self, gs, image, x, y, owner):
+        self.gs = gs
 	pygame.sprite.Sprite.__init__(self)
-	self.image, self.rect = load_image('images/greensquare.png')
-	self.rect.topleft = 10, 10
+	self.image, self.rect = load_image(image)
+	self.rect.topleft = x, y
+        self.ownership = owner
 
-    def move(self, distance):
-        self.rect.x = self.rect.x + distanc
+    def move(self, xpos):
+        self.rect.x = xpos
         pygame.display.update(self.rect)
 
     def tick(self):
-    	i = 4
+        if self.ownership:
+            myPos = 'enemy='+str(self.rect.x)+'\r\n' # y position constant
+            self.gs.p1Con.transport.write(myPos)
 
 # PLAYER CONNECTION
 class PlayerConnection(Protocol):
     def connectionMade(self):
 	# Create player connection
-	game = GameSpace(p1Con.getConnection())
-	lc = LoopingCall(game.loop)
-	lc.start(1/60)
+	self.game = GameSpace(p1Con.getConnection(), reactor)
 	print("player 1 connection made")
 	
     def dataReceived(self, data):
 	# server.py has sent data to player 2: update game
     	print 'data received from player2: ', data
+        parts = data.split('=') # get label and value
+        pos = parts[1].split('\r') #isolate number
+        if parts[0] == 'enemy':
+            self.game.enemyAvatar.move(int(pos[0]))
 		
 
 class PlayerConnectionFactory(Factory):

@@ -16,9 +16,10 @@ def load_image(name):
 
 # GAMESPACE
 class GameSpace():
-    def __init__(self, p2Con):
+    def __init__(self, p2Con, reactor):
 	# Add network connection
 	self.p2Con = p2Con
+        self.reactor = reactor
 
 	# Initialize window settings
 	pygame.init()
@@ -31,36 +32,37 @@ class GameSpace():
 	# Initialize game objects
 	self.clock = pygame.time.Clock()
 	self.background = Background(self)
-	self.myAvatar = Avatar(self, 'images/greensquare.png', 10, 10)
-        self.enemyAvatar = Avatar(self, 'images/globe.png', 10, 20)
+	self.myAvatar = Avatar(self, 'images/greensquare.png', 10, 10, 1) #1 for ownership
+        self.enemyAvatar = Avatar(self, 'images/globe.png', 10, 20, 0)
 	self.sprites = [self.enemyAvatar, self.myAvatar]
 	self.allsprites = pygame.sprite.RenderPlain(self.sprites)
+
+        # start game "loop"
+        self.reactor.callLater(1/60, self.loop)
 
     def loop(self):
 	for event in pygame.event.get():
 	    if event.type == QUIT:
 		pygame.quit()
-		sys.exit(0)
+		os._exit(0)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
-                    self.MyAvatar.move(-5) #move left
+                    self.myAvatar.move(self.myAvatar.rect.x - 5) #move left
                 elif event.key == pygame.K_RIGHT:
-                    self.MyAvatar.move(5) #move right
+                    self.myAvatar.move(self.myAvatar.rect.x + 5) #move right
 #                elif event.key == pygame.K_SPACE:
                     #fire
         for sprite in self.sprites:
             sprite.tick()
 
 	# Update screen
-#        self.background.update()
-#        self.allsprites.update()
 	self.screen.fill(self.back)
         self.screen.blit(self.background.image, self.background.rect)
 	for i in self.sprites:
 	    self.screen.blit(i.image, i.rect)
-#        self.background.draw(self.screen)
-#	self.allsprites.draw(self.screen)
 	pygame.display.flip()
+
+        self.reactor.callLater(1/60, self.loop)
 
 # BACKGROUND
 class Background(pygame.sprite.Sprite):
@@ -73,18 +75,21 @@ class Background(pygame.sprite.Sprite):
 
 # AVATAR CLASS
 class Avatar(pygame.sprite.Sprite):
-    def __init__(self, gs, image, x, y):
+    def __init__(self, gs, image, x, y, owner):
+        self.gs = gs
 	pygame.sprite.Sprite.__init__(self)
 	self.image, self.rect = load_image(image)
 	self.rect.topleft = x, y
+        self.ownership = owner
 
-    def move(self, distance):
-        self.rect = self.rect.move(distance,0)
-        #self.rect.x = self.rect.x + distance
+    def move(self, xpos):
+        self.rect.x = xpos
         pygame.display.update(self.rect)
 
     def tick(self):
-	i = 5
+        if self.ownership:
+            myPos = 'enemy='+str(self.rect.x)+'\r\n' # y position constant
+            self.gs.p2Con.transport.write(myPos)
 
 
 # PLAYER 2 CONNECTION
@@ -92,13 +97,18 @@ class PlayerConnection(Protocol):
     def connectionMade(self):
 	# Create player connection
 	print'player 2 connection made'
-	game = GameSpace(p2Con.getConnection())
-	lc = LoopingCall(game.loop)
-	lc.start(1/60)
+	self.game = GameSpace(p2Con.getConnection(),reactor)
+#	lc = LoopingCall(game.loop)
+#	lc.start(1/60)
 
     def dataReceived(self, data):
 	# server.py has sent data to player 1: update game
 	print 'data received from player1: ', data
+        parts = data.split('=') #get label and value
+        pos = parts[1].split('\r') #isolate number
+        if parts[0] == 'enemy':
+            self.game.enemyAvatar.move(int(pos[0]))
+
 
 class PlayerConnectionFactory(ClientFactory):
     def __init__(self):
