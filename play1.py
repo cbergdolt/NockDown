@@ -10,7 +10,6 @@ from twisted.internet.task import LoopingCall
 # Loads images
 def load_image(name):
     image = pygame.image.load(name)
-    image = image.convert()
     return image, image.get_rect()
 
 # GAMESPACE
@@ -132,7 +131,7 @@ class Acorn(pygame.sprite.Sprite):
         self.hit = 0
 
     def tick(self):
-        self.rect.y = self.rect.y - 60 #this might be too slow
+        self.rect.y = self.rect.y - 40 
         if self.rect.colliderect(self.gs.target.rect) and self.hit == 0 and self.gs.target.show and not self.gs.target.beenHit:
             self.gs.score = self.gs.score + 1
             print 'P1 score: '+str(self.gs.score)

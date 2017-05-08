@@ -11,7 +11,8 @@ from twisted.internet.task import LoopingCall
 # Function that loads images
 def load_image(name):
     image = pygame.image.load(name)
-    image = image.convert()
+#    image = image.convert()
+#    image.set_colorkey((255,255,255))
     return image, image.get_rect()
 
 # GAMESPACE
@@ -92,6 +93,8 @@ class GameSpace():
 class Background(pygame.sprite.Sprite):
     def __init__(self, gs):
 	pygame.sprite.Sprite.__init__(self)
+#        self.image = pygame.image.load('images/booth.jpg')
+#        self.rect = self.image.get_rect()
 	self.image, self.rect = load_image('images/booth.jpg') 
 	self.rect.topleft = 0, 0
     def tick(self):
@@ -126,7 +129,7 @@ class Acorn(pygame.sprite.Sprite):
         self.hit = 0
 
     def tick(self):
-        self.rect.y = self.rect.y - 60
+        self.rect.y = self.rect.y - 40
         if self.rect.colliderect(self.gs.target.rect) and self.hit == 0 and self.gs.target.show and not self.gs.target.beenHit:
             self.gs.score = self.gs.score + 1
             self.hit = 1
@@ -189,27 +192,27 @@ class PlayerConnection(Protocol):
     def dataReceived(self, data):
 	# server.py has sent data to player 1: update game
 	print 'data received from player1: ', data
-        parts = data.split('=') #get label and value
-        pos = parts[1].split('\r') #isolate number
-        print pos
-        next_data = pos[1].split('\n')
-        print next_data
-        if parts[0] == 'enemy':
-            self.game.enemyAvatar.move(int(pos[0]))
-        elif parts[0] == 'acorn':
-            x = self.game.enemyAvatar.rect.centerx
-            y = self.game.enemyAvatar.rect.y
-            new_acorn = Acorn(self.game, 'images/acornP1.png', x, y, 0) #not owned by myAvatar
-            self.game.acorns.append(new_acorn)
-# The issue here is that the enemy data and target data is getting sent basically at the same time,
-#   so it's all in one data string.  I need to change how I am parsing it
-# I think this will also sometimes be a problem with the acorn and targetPos data--though I'm not
-#   sure why it wasn't a problem with the acorn
-        elif parts[0] == 'targetTime':
-            print 'targetTime: '+pos[0]
-            self.game.target.timePassed = int(pos[0])
-        elif parts[0] == 'targetPos':
-            self.game.target.pos = int(pos[0])
+        datas = data.split('\n') #split writes
+        print datas
+        for name in datas:
+            parts = name.split('=') #get label and value
+            print parts
+            if len(parts) == 2:
+                pos = parts[1].split('\r') #isolate number
+            else:
+                continue
+            if parts[0] == 'enemy':
+                self.game.enemyAvatar.move(int(pos[0]))
+            elif parts[0] == 'acorn':
+                x = self.game.enemyAvatar.rect.centerx
+                y = self.game.enemyAvatar.rect.y
+                new_acorn = Acorn(self.game, 'images/acornP1.png', x, y, 0) #not owned by myAvatar
+                self.game.acorns.append(new_acorn)
+            elif parts[0] == 'targetTime':
+                print 'targetTime: '+pos[0]
+                self.game.target.timePassed = int(pos[0])
+            elif parts[0] == 'targetPos':
+                self.game.target.pos = int(pos[0])
 
 
 class PlayerConnectionFactory(ClientFactory):
