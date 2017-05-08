@@ -3,7 +3,7 @@
 from twisted.internet.protocol import Factory
 from twisted.internet.protocol import Protocol
 from twisted.internet import reactor
-import sys, os, pygame, math
+import sys, os, pygame, math, random
 from pygame.locals import *
 from twisted.internet.task import LoopingCall
 
@@ -31,10 +31,15 @@ class GameSpace():
 	# Initialize game objects
 	self.clock = pygame.time.Clock()
 	self.background = Background(self)
-	self.myAvatar = Avatar(self, 'images/globe.png', 10, 20, 1) #1 indicates ownership
-        self.enemyAvatar = Avatar(self, 'images/greensquare.png', 10, 10, 0)
+	self.myAvatar = Avatar(self, 'images/squirrelP1.png', 10, 330, 1) #1 indicates ownership
+        self.enemyAvatar = Avatar(self, 'images/squirrelP2.png', 500, 330, 0)
 	self.sprites = [self.enemyAvatar, self.myAvatar] # contains list of objects
-	self.allsprites = pygame.sprite.RenderPlain(self.sprites)
+        self.target = Target(self)
+        self.acorns = []
+
+        # Score and Target stuff
+        self.score = 0
+        random.seed() #seed random number generator from current time
 
         # start event "loop"
         self.reactor.callLater(1/60, self.loop)
@@ -46,26 +51,44 @@ class GameSpace():
 	        os._exit(0)
 	    if event.type == KEYDOWN:
                 if event.key == pygame.K_LEFT:
-                    self.myAvatar.move(self.myAvatar.rect.x - 5) #move left
+                    self.myAvatar.move(self.myAvatar.rect.x - 30) #move left
 #   Not sure if we want to do the write here or in tick (where it is now)
 #       it doesn't need to happen more often than here, but in the spirit of
 #       the clock-tick paradigm, it might be better to leave it in tick?
 #                    myPos = 'enemy='+str(self.myAvatar.rect.x)
 #                    self.p1Con.transport.write(myPos)
                 elif event.key == pygame.K_RIGHT:
-                    self.myAvatar.move(self.myAvatar.rect.x + 5) #move right
+                    self.myAvatar.move(self.myAvatar.rect.x + 30) #move right
 #                    myPos = 'enemy='+str(self.myAvatar.rect.x)
 #                    self.p1Con.transport.write(myPos)
-#                elif event.key == pygame.K_SPACE:
+                elif event.key == pygame.K_SPACE:
                     #fire
+                    x = self.myAvatar.rect.centerx
+                    y = self.myAvatar.rect.y
+                    new_acorn = Acorn(self, 'images/acornP1.png', x, y, 1) #1 indicates ownership
+                    self.acorns.append(new_acorn)
+                    #write data to player 2
+                    self.p1Con.transport.write('acorn=\r\n')
+
 	for sprite in self.sprites:
 	    sprite.tick()
+        for acorn in self.acorns:
+            if acorn.hit:
+                self.acorns.remove(acorn) #delete acorn
+            else:
+                acorn.tick()
+        self.target.tick()
 
 	# Update screen
 	self.screen.fill(self.back)
         self.screen.blit(self.background.image, self.background.rect)
+        if self.target.show:
+            self.screen.blit(self.target.image, self.target.rect)
 	for i in self.sprites:
 	    self.screen.blit(i.image, i.rect)
+        for acorn in self.acorns:
+            if not acorn.hit:
+                self.screen.blit(acorn.image, acorn.rect)
 	pygame.display.flip()
 
         self.reactor.callLater(1/60, self.loop)
@@ -98,6 +121,75 @@ class Avatar(pygame.sprite.Sprite):
             myPos = 'enemy='+str(self.rect.x)+'\r\n' # y position constant
             self.gs.p1Con.transport.write(myPos)
 
+# ACORN CLASS
+class Acorn(pygame.sprite.Sprite):
+    def __init__(self, gs, image, x, y, owner):
+        self.gs = gs
+        pygame.sprite.Sprite.__init__(self)
+        self.image, self.rect = load_image(image)
+        self.rect.topleft = x, y
+        self.ownership = owner
+        self.hit = 0
+
+    def tick(self):
+        self.rect.y = self.rect.y - 60 #this might be too slow
+        if self.rect.colliderect(self.gs.target.rect) and self.hit == 0 and self.gs.target.show and not self.gs.target.beenHit:
+            self.gs.score = self.gs.score + 1
+            print 'P1 score: '+str(self.gs.score)
+            self.hit = 1
+            #update image to indicate hit target, and which player hit it
+            if self.ownership:
+                self.gs.target.image = pygame.image.load('images/hitP1.png')
+            else:
+                self.gs.target.image = pygame.image.load('images/hitP2.png')
+            #set "timer" before target disappears
+            self.gs.target.timePassed = -5
+            self.gs.target.beenHit = 1
+
+# TARGET CLASS
+class Target(pygame.sprite.Sprite):
+    def __init__(self, gs):
+        self.gs = gs
+        pygame.sprite.Sprite.__init__(self)
+        self.image, self.rect = load_image('images/leprechaun.png')
+        self.rect.topleft = 340, 200
+        self.show = 0 #initially invisible
+        self.beenHit = 1 #initially cannot be hit (b/c invisible), so register as already hit
+        self.timePassed = 0
+        self.pos = 0
+
+    def move(self, x):
+        self.rect.x = x
+
+    def doshow(self):
+        if not self.show:
+            self.show = 1
+        else:
+            pass
+
+    def unshow(self):
+        if self.show:
+            self.show = 0
+        else:
+            pass
+
+    def tick(self):
+        self.timePassed = self.timePassed + 1
+        self.gs.p1Con.transport.write('targetTime='+str(self.timePassed)+'\r\n')
+        print 'timePassed = '+str(self.timePassed)
+        if not self.show and self.timePassed >= 15: #wait .25 second between hit and new target
+            self.pos = random.randint(75,465) #new position somewhere inside the booth
+            #write new position to player 2
+            self.gs.p1Con.transport.write('targetPos='+str(self.pos)+'\r\n')
+            #update self
+            self.move(self.pos) 
+            self.beenHit = 0 #allow target hits to register
+            self.doshow()
+        elif self.show and self.timePassed == 0:
+            self.unshow() #unshow after target hit
+            self.image = pygame.image.load('images/leprechaun.png') #reload leprechaun
+            
+
 # PLAYER CONNECTION
 class PlayerConnection(Protocol):
     def connectionMade(self):
@@ -112,6 +204,11 @@ class PlayerConnection(Protocol):
         pos = parts[1].split('\r') #isolate number
         if parts[0] == 'enemy':
             self.game.enemyAvatar.move(int(pos[0]))
+        elif parts[0] == 'acorn':
+            x = self.game.enemyAvatar.rect.centerx
+            y = self.game.enemyAvatar.rect.y
+            new_acorn = Acorn(self.game, 'images/acornP2.png', x, y, 0) #not owned by myAvatar
+            self.game.acorns.append(new_acorn)
 		
 
 class PlayerConnectionFactory(Factory):
