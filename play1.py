@@ -5,9 +5,6 @@ from twisted.internet.protocol import Protocol
 from twisted.internet import reactor
 import sys, os, pygame, math, random
 from pygame.locals import *
-from twisted.internet.task import LoopingCall
-import time
-# ^^ again, I don't think we need this, but didn't want to get rid of it until we know for sure
 
 # Loads images
 def load_image(name):
@@ -34,7 +31,7 @@ class GameSpace():
 	self.background = Background(self)
 	self.myAvatar = Avatar(self, 'images/squirrelP1.png', 'images/scores/player1_0.png', 10, 330, 0, 0, 1) #1 indicates ownership
         self.enemyAvatar = Avatar(self, 'images/squirrelP2.png', 'images/scores/player2_0.png', 500, 330, 525, 0, 0)
-	self.sprites = [self.enemyAvatar, self.myAvatar] # contains list of objects
+	self.sprites = [self.enemyAvatar, self.myAvatar] # contains list of avatars (squirrels)
         self.target = Target(self)
         self.acorns = []
 
@@ -77,7 +74,7 @@ class GameSpace():
                     new_acorn = Acorn(self, 'images/acornP1.png', x, y, 1) #1 indicates ownership
                     self.acorns.append(new_acorn)
                     #write data to player 2
-                    self.p1Con.transport.write('acorn=1\r\n')
+                    self.p1Con.transport.write('acorn=1\r\n') #player 1 acorn sent to player 2
 
         for acorn in self.acorns:
             acorn.tick()
@@ -177,7 +174,6 @@ class Acorn(pygame.sprite.Sprite):
                 self.gs.myAvatar.score = self.gs.myAvatar.score + 1
                 # Control scoring solely in play1.py so no discrepancies arise
                 self.gs.p1Con.transport.write('player1score='+str(self.gs.myAvatar.score)+'\r\n')
-                print("sent player1score: ", str(self.gs.myAvatar.score))
                 if self.gs.myAvatar.score == 10:
                     self.gs.myAvatar.win = 1
                     self.gs.gameOver = 1
@@ -252,7 +248,6 @@ class PlayerConnection(Protocol):
             if parts[0] == 'enemy':
                 self.game.enemyAvatar.move(int(pos[0]))
             elif parts[0] == 'acorn':
-                print("acorn received")
                 x = self.game.enemyAvatar.rect.centerx
                 y = self.game.enemyAvatar.rect.y
                 new_acorn = Acorn(self.game, 'images/acornP2.png', x, y, 0) #not owned by myAvatar
@@ -272,7 +267,7 @@ class PlayerConnectionFactory(Factory):
 
 if __name__ == '__main__':
     p1Con = PlayerConnectionFactory()
-    reactor.listenTCP(40403, p1Con)
+    reactor.listenTCP(40120, p1Con)
     reactor.run()
 
 

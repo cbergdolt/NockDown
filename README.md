@@ -12,8 +12,8 @@ The first squirrel to knock down 10 targets wins.
 ------------------------------------
 
 HOW TO PLAY:
-1) Run "python play1.py" in one terminal window
-2) Run "python play2.py" in a separate terminal window
+1) Player 1: Run "python play1.py" in your terminal window
+2) Player 2: Run "python play2.py" in your terminal window
 3) Move your squirrel left and right by using the arrow keys
 4) Shoot your acorns at the targets when they appear by pressing the spacebar
 
@@ -33,10 +33,6 @@ game speed. This is why the scoring is controlled entirely in the play1.py
 program, which prevents player 1 and player 2 from exhibiting differing
 scores in the case where both acorns are thrown almost simultaneously.
 This is just one of the several places we introduced extra network communication.
-However, we recognize that the network speed and differing CPU capabilities may
-lead to unpredictable performance. In our testing phase, we found our game
-to execute as expected almost all of the time, but we did experience some
-network lag. 
 
 ------------------------------------
 

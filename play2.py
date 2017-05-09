@@ -5,9 +5,6 @@ from twisted.internet.protocol import Protocol
 from twisted.internet import reactor
 import sys, os, pygame, math
 from pygame.locals import *
-from twisted.internet.task import LoopingCall
-# ^^ I don't think we need this, since we're using callLater instead of loopingCall, but
-#   I didn't want to get rid of it until I/you had a chance to make sure it works without it
 
 # Function that loads images
 def load_image(name):
@@ -261,6 +258,6 @@ class PlayerConnectionFactory(ClientFactory):
 
 if __name__ == "__main__":
     p2Con = PlayerConnectionFactory()
-    reactor.connectTCP("newt.campus.nd.edu", 40403, p2Con)
+    reactor.connectTCP("ash.campus.nd.edu", 40120, p2Con)
     reactor.run()
 
