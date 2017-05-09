@@ -33,14 +33,15 @@ class GameSpace():
 	# Initialize game objects
 	self.clock = pygame.time.Clock()
 	self.background = Background(self)
-	self.myAvatar = Avatar(self, 'images/squirrelP2.png', 500, 330, 1) #1 for ownership
-        self.enemyAvatar = Avatar(self, 'images/squirrelP1.png', 10, 330, 0)
+	self.myAvatar = Avatar(self, 'images/squirrelP2.png', 'images/scores/player2_0.png', 500, 330, 525, 0, 1) #1 for ownership
+        self.enemyAvatar = Avatar(self, 'images/squirrelP1.png', 'images/scores/player1_0.png', 10, 330, 0, 0, 0)
+#        self.myScore = Score(self, 'images/scores/player2_0.png', 0, 0)
+#        self.enemyScore = Score(self, 'images/scores/player1_0.png', 600, 0)
 	self.sprites = [self.enemyAvatar, self.myAvatar]
         self.target = Target(self)
         self.acorns = []
 
         # Score and Target stuff
-        self.score = 0
 #        random.seed() #seed random number generator from current time
 #   P1 is in charge of setting and communicating the target position
 
@@ -50,6 +51,7 @@ class GameSpace():
     def loop(self):
 	for event in pygame.event.get():
 	    if event.type == QUIT:
+#                self.p2Con.transport.write('quit=1\r\n')
 		pygame.quit()
 		os._exit(0)
             elif event.type == pygame.KEYDOWN:
@@ -68,6 +70,7 @@ class GameSpace():
 
         for sprite in self.sprites:
             sprite.tick()
+            sprite.scorecard.tick()
         for acorn in self.acorns:
             if acorn.hit: 
                 self.acorns.remove(acorn) #delete acorn
@@ -82,6 +85,7 @@ class GameSpace():
             self.screen.blit(self.target.image, self.target.rect)
 	for i in self.sprites:
 	    self.screen.blit(i.image, i.rect)
+            self.screen.blit(i.scorecard.image, i.scorecard.rect)
         for acorn in self.acorns:
             if not acorn.hit:
                 self.screen.blit(acorn.image, acorn.rect)
@@ -102,12 +106,14 @@ class Background(pygame.sprite.Sprite):
 
 # AVATAR CLASS
 class Avatar(pygame.sprite.Sprite):
-    def __init__(self, gs, image, x, y, owner):
+    def __init__(self, gs, image, scoreimage, x, y, scorex, scorey, owner):
         self.gs = gs
 	pygame.sprite.Sprite.__init__(self)
 	self.image, self.rect = load_image(image)
 	self.rect.topleft = x, y
         self.ownership = owner
+        self.score = 0
+        self.scorecard = Score(self, scoreimage, scorex, scorey)
 
     def move(self, xpos):
         self.rect.x = xpos
@@ -117,6 +123,23 @@ class Avatar(pygame.sprite.Sprite):
         if self.ownership:
             myPos = 'enemy='+str(self.rect.x)+'\r\n' # y position constant
             self.gs.p2Con.transport.write(myPos)
+
+# SCORE CLASS
+class Score(pygame.sprite.Sprite):
+    def __init__ (self, avatar, image, x, y):
+        self.avatar = avatar
+        pygame.sprite.Sprite.__init__(self)
+        self.imagebase = image.split('_')[0]
+        self.image, self.rect = load_image(image)
+        self.rect.topleft = x, y
+        self.score = 0
+
+    def tick(self):
+        if self.score != self.avatar.score:
+            self.score = self.avatar.score #update score
+            newimage = self.imagebase+'_'+str(self.score)+'.png'
+            self.image = pygame.image.load(newimage)
+
 
 # ACORN CLASS
 class Acorn(pygame.sprite.Sprite):
@@ -131,13 +154,15 @@ class Acorn(pygame.sprite.Sprite):
     def tick(self):
         self.rect.y = self.rect.y - 40
         if self.rect.colliderect(self.gs.target.rect) and self.hit == 0 and self.gs.target.show and not self.gs.target.beenHit:
-            self.gs.score = self.gs.score + 1
+#            self.gs.score = self.gs.score + 1
             self.hit = 1
             #update image to indicate hit target and which player hit it
             if self.ownership:
                 self.gs.target.image = pygame.image.load('images/hitP2.png')
+                self.gs.myAvatar.score = self.gs.myAvatar.score + 1
             else:
                 self.gs.target.image = pygame.image.load('images/hitP1.png')
+                self.gs.enemyAvatar.score = self.gs.enemyAvatar.score + 1
             #set "timer" before target disappears
             self.gs.target.timePassed = -5
             self.gs.target.beenHit = 1
@@ -170,8 +195,8 @@ class Target(pygame.sprite.Sprite):
             pass
 
     def tick(self):
-        print 'self.show = '+str(self.show)
-        print 'self.timePassed = '+str(self.timePassed)
+#        print 'self.show = '+str(self.show)
+#        print 'self.timePassed = '+str(self.timePassed)
         #don't update target position/timePassed, because that is synced from P1 via a write
         if not self.show and self.timePassed >= 15:
             self.move(self.pos)
@@ -193,10 +218,10 @@ class PlayerConnection(Protocol):
 	# server.py has sent data to player 1: update game
 	print 'data received from player1: ', data
         datas = data.split('\n') #split writes
-        print datas
+#        print datas
         for name in datas:
             parts = name.split('=') #get label and value
-            print parts
+#            print parts
             if len(parts) == 2:
                 pos = parts[1].split('\r') #isolate number
             else:
@@ -209,10 +234,13 @@ class PlayerConnection(Protocol):
                 new_acorn = Acorn(self.game, 'images/acornP1.png', x, y, 0) #not owned by myAvatar
                 self.game.acorns.append(new_acorn)
             elif parts[0] == 'targetTime':
-                print 'targetTime: '+pos[0]
+ #               print 'targetTime: '+pos[0]
                 self.game.target.timePassed = int(pos[0])
             elif parts[0] == 'targetPos':
                 self.game.target.pos = int(pos[0])
+#            elif parts[0] == 'quit':
+#                self.game.pygame.quit()
+#                os._exit(0)
 
 
 class PlayerConnectionFactory(ClientFactory):
