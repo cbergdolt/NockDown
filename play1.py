@@ -6,6 +6,7 @@ from twisted.internet import reactor
 import sys, os, pygame, math, random
 from pygame.locals import *
 from twisted.internet.task import LoopingCall
+import time
 # ^^ again, I don't think we need this, but didn't want to get rid of it until we know for sure
 
 # Loads images
@@ -23,7 +24,7 @@ class GameSpace():
 	# Initialize window settings
 	pygame.init()
 	pygame.key.set_repeat(100, 30)
-        pygame.display.set_caption('kNockDown: player1')
+        pygame.display.set_caption('NockDown: player1')
 	self.back = 255, 255, 255 
 	self.size = self.width, self.height = 640, 480
 	self.screen = pygame.display.set_mode(self.size)
@@ -44,12 +45,27 @@ class GameSpace():
         # start event "loop"
         self.reactor.callLater(1/60, self.loop)
 		
+    def win(self):
+        if self.myAvatar.win:
+            self.screen.fill(self.back)
+            self.background.image = pygame.image.load('images/winscreen.jpg')
+        else:
+            self.background.image = pygame.image.load('images/losescreen.jpg')
+        self.screen.blit(self.background.image, self.background.rect)
+        pygame.display.flip()
+            
+        for event in pygame.event.get():
+	    if event.type == QUIT:
+		pygame.quit()
+	        os._exit(0)
+        self.reactor.callLater(1/60, self.win)
+	
     def loop(self):
 	for event in pygame.event.get():
 	    if event.type == QUIT:
 		pygame.quit()
 	        os._exit(0)
-	    if event.type == KEYDOWN:
+            if event.type == KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     self.myAvatar.move(self.myAvatar.rect.x - 30) #move left
                 elif event.key == pygame.K_RIGHT:
@@ -63,14 +79,11 @@ class GameSpace():
                     #write data to player 2
                     self.p1Con.transport.write('acorn=\r\n')
 
+        for acorn in self.acorns:
+            acorn.tick()
 	for sprite in self.sprites:
 	    sprite.tick()
             sprite.scorecard.tick()
-        for acorn in self.acorns:
-            if acorn.hit:
-                self.acorns.remove(acorn) #delete acorn
-            else:
-                acorn.tick()
         self.target.tick()
 
         if not self.gameOver:
@@ -89,18 +102,8 @@ class GameSpace():
             
             self.reactor.callLater(1/60, self.loop)
         else:
-            if self.myAvatar.win:
-                self.background.image = pygame.image.load('images/winscreen.jpg')
-            else:
-                self.background.image = pygame.image.load('images/losescreen.jpg')
-            self.screen.blit(self.background.image, self.background.rect)
-            pygame.display.flip()
-            while 1: #catch window 'x' button event
-                for event in pygame.event.get():
-	            if event.type == QUIT:
-                        pygame.quit()
-                        os._exit(0)
-		
+            self.win()
+      
 # BACKGROUND
 class Background(pygame.sprite.Sprite):
     def __init__(self, gs):
@@ -172,7 +175,9 @@ class Acorn(pygame.sprite.Sprite):
             self.gs.target.image = pygame.image.load('images/hit.png')
             if self.ownership:
                 self.gs.myAvatar.score = self.gs.myAvatar.score + 1
+                # Control scoring solely in play1.py so no discrepancies arise
                 self.gs.p1Con.transport.write('player1score='+str(self.gs.myAvatar.score)+'\r\n')
+                print("sent player1score: ", str(self.gs.myAvatar.score))
                 if self.gs.myAvatar.score == 10:
                     self.gs.myAvatar.win = 1
                     self.gs.gameOver = 1

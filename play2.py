@@ -25,7 +25,7 @@ class GameSpace():
 	pygame.init()
 	pygame.key.set_repeat(100, 30)
         pygame.display.set_caption('kNockDown: player2')
-	self.back = 30, 144, 255
+	self.back = 255, 255, 255
 	self.size = self.width, self.height = 640, 480
 	self.screen = pygame.display.set_mode(self.size)
 
@@ -45,6 +45,21 @@ class GameSpace():
         # start game "loop"
         self.reactor.callLater(1/60, self.loop)
 
+    def win(self):
+        if self.myAvatar.win:
+            self.screen.fill(self.back)
+            self.background.image = pygame.image.load('images/winscreen.jpg')
+        else:
+            self.background.image = pygame.image.load('images/winscreen.jpg')
+        self.screen.blit(self.background.image, self.background.rect)
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                os._exit(0)
+        self.reactor.callLater(1/60, self.win)
+
     def loop(self):
 	for event in pygame.event.get():
 	    if event.type == QUIT:
@@ -63,15 +78,11 @@ class GameSpace():
                     self.acorns.append(new_acorn)
                     #write data to player 1
                     self.p2Con.transport.write('acorn=\r\n')
-
-        for sprite in self.sprites:
-            sprite.tick()
-            sprite.scorecard.tick()
         for acorn in self.acorns:
-            if acorn.hit: 
-                self.acorns.remove(acorn) #delete acorn
-            else:
-                acorn.tick()
+            acorn.tick()
+        for sprite in self.sprites:
+            sprite.scorecard.tick()
+            sprite.tick()
         self.target.tick()
 
         if not self.gameOver:
@@ -90,17 +101,7 @@ class GameSpace():
 
             self.reactor.callLater(1/60, self.loop)
         else:
-            if self.myAvatar.win:
-                self.background.image = pygame.image.load('images/winscreen.jpg')
-            else:
-                self.background.image = pygame.image.load('images/losescreen.jpg')
-            self.screen.blit(self.background.image, self.background.rect)
-            pygame.display.flip()
-            while 1: # catch window 'x' button event
-                for event in pygame.event.get():
-                    if event.type == QUIT:
-                        pygame.quit()
-                        os._exit(0)
+            self.win()
 
 # BACKGROUND
 class Background(pygame.sprite.Sprite):
@@ -166,6 +167,7 @@ class Acorn(pygame.sprite.Sprite):
         self.hit = 0
 
     def tick(self):
+        print("timePassed within acorn tick: ", str(self.gs.target.timePassed))
         self.rect.y = self.rect.y - 40
         if self.rect.colliderect(self.gs.target.rect) and self.hit == 0 and self.gs.target.show and not self.gs.target.beenHit:
             self.hit = 1
@@ -208,7 +210,7 @@ class Target(pygame.sprite.Sprite):
             self.move(self.pos)
             self.beenHit = 0 #allow target hits to register
             self.doshow()
-        elif self.show and self.timePassed == 0:
+        elif self.show and self.timePassed > 0 and self.timePassed < 15:
             self.unshow() #unshow after target hit
             self.image = pygame.image.load('images/leprechaun.png')
 
@@ -258,6 +260,6 @@ class PlayerConnectionFactory(ClientFactory):
 
 if __name__ == "__main__":
     p2Con = PlayerConnectionFactory()
-    reactor.connectTCP("ash.campus.nd.edu", 40403, p2Con)
+    reactor.connectTCP("newt.campus.nd.edu", 40403, p2Con)
     reactor.run()
 
