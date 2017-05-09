@@ -77,7 +77,7 @@ class GameSpace():
                     new_acorn = Acorn(self, 'images/acornP1.png', x, y, 1) #1 indicates ownership
                     self.acorns.append(new_acorn)
                     #write data to player 2
-                    self.p1Con.transport.write('acorn=\r\n')
+                    self.p1Con.transport.write('acorn=1\r\n')
 
         for acorn in self.acorns:
             acorn.tick()
@@ -229,7 +229,7 @@ class Target(pygame.sprite.Sprite):
             self.move(self.pos) 
             self.beenHit = 0 #allow target hits to register
             self.doshow()
-        elif self.show and self.timePassed == 0:
+        elif self.show and self.timePassed > 0 and self.timePassed < 15:
             self.unshow() #unshow after target hit
             self.image = pygame.image.load('images/leprechaun.png') #reload leprechaun
             
@@ -242,15 +242,21 @@ class PlayerConnection(Protocol):
 	
     def dataReceived(self, data):
 	# server.py has sent data to player 2: update game
-        parts = data.split('=') # get label and value
-        pos = parts[1].split('\r') #isolate number
-        if parts[0] == 'enemy':
-            self.game.enemyAvatar.move(int(pos[0]))
-        elif parts[0] == 'acorn':
-            x = self.game.enemyAvatar.rect.centerx
-            y = self.game.enemyAvatar.rect.y
-            new_acorn = Acorn(self.game, 'images/acornP2.png', x, y, 0) #not owned by myAvatar
-            self.game.acorns.append(new_acorn)
+        datas = data.split('\n')
+        for name in datas:
+            parts = name.split('=') # get label and value
+            if len(parts) == 2:
+                pos = parts[1].split('\r') #isolate number
+            else:
+                continue
+            if parts[0] == 'enemy':
+                self.game.enemyAvatar.move(int(pos[0]))
+            elif parts[0] == 'acorn':
+                print("acorn received")
+                x = self.game.enemyAvatar.rect.centerx
+                y = self.game.enemyAvatar.rect.y
+                new_acorn = Acorn(self.game, 'images/acornP2.png', x, y, 0) #not owned by myAvatar
+                self.game.acorns.append(new_acorn)
 		
 
 class PlayerConnectionFactory(Factory):

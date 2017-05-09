@@ -50,7 +50,7 @@ class GameSpace():
             self.screen.fill(self.back)
             self.background.image = pygame.image.load('images/winscreen.jpg')
         else:
-            self.background.image = pygame.image.load('images/winscreen.jpg')
+            self.background.image = pygame.image.load('images/losescreen.jpg')
         self.screen.blit(self.background.image, self.background.rect)
         pygame.display.flip()
 
@@ -77,7 +77,8 @@ class GameSpace():
                     new_acorn = Acorn(self, 'images/acornP2.png', x, y, 1) # 1 indicates ownership
                     self.acorns.append(new_acorn)
                     #write data to player 1
-                    self.p2Con.transport.write('acorn=\r\n')
+                    self.p2Con.transport.write('acorn=1\r\n')
+
         for acorn in self.acorns:
             acorn.tick()
         for sprite in self.sprites:
@@ -167,7 +168,7 @@ class Acorn(pygame.sprite.Sprite):
         self.hit = 0
 
     def tick(self):
-        print("timePassed within acorn tick: ", str(self.gs.target.timePassed))
+        #print("timePassed within acorn tick: ", str(self.gs.target.timePassed))
         self.rect.y = self.rect.y - 40
         if self.rect.colliderect(self.gs.target.rect) and self.hit == 0 and self.gs.target.show and not self.gs.target.beenHit:
             self.hit = 1
