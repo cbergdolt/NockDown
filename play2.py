@@ -130,6 +130,12 @@ class Avatar(pygame.sprite.Sprite):
         pygame.display.update(self.rect)
 
     def tick(self):
+        if self.score == 10:
+            self.win = 1
+            self.gs.gameOver = 1
+        else:
+            pass        
+
         if self.ownership:
             myPos = 'enemy='+str(self.rect.x)+'\r\n' # y position constant
             self.gs.p2Con.transport.write(myPos)
@@ -168,14 +174,7 @@ class Acorn(pygame.sprite.Sprite):
             self.hit = 1
             #update image to indicate hit target and which player hit it
             self.gs.target.image = pygame.image.load('images/hit.png')
-            if self.gs.myAvatar.score == 10:
-                self.gs.myAvatar.win = 1
-                self.gs.gameOver = 1
-            elif self.gs.enemyAvatar.score == 10:
-                self.gs.enemyAvatar.win = 1
-                self.gs.gameOver = 1
-            else:
-                pass
+
 #            else:
 #            self.gs.target.image = pygame.image.load('images/hitP1.png')
 #                self.gs.enemyAvatar.score = self.gs.enemyAvatar.score + 1

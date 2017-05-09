@@ -130,6 +130,12 @@ class Avatar(pygame.sprite.Sprite):
         pygame.display.update(self.rect)
 
     def tick(self):
+        if self.score == 10:
+            self.win = 1
+            self.gs.gameOver = 1
+        else:
+            pass
+
         if self.ownership:
             myPos = 'enemy='+str(self.rect.x)+'\r\n' # y position constant
             self.gs.p1Con.transport.write(myPos)
