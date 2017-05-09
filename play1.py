@@ -80,7 +80,7 @@ class GameSpace():
                 acorn.tick()
         self.target.tick()
 
-        if !self.gameOver:
+        if not self.gameOver:
             # Update screen
             self.screen.fill(self.back)
             self.screen.blit(self.background.image, self.background.rect)
