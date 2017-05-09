@@ -6,6 +6,7 @@ from twisted.internet import reactor
 import sys, os, pygame, math, random
 from pygame.locals import *
 from twisted.internet.task import LoopingCall
+# ^^ again, I don't think we need this, but didn't want to get rid of it until we know for sure
 
 # Loads images
 def load_image(name):
@@ -46,21 +47,13 @@ class GameSpace():
     def loop(self):
 	for event in pygame.event.get():
 	    if event.type == QUIT:
-#                self.p1Con.transport.write('quit=1\r\n')
 		pygame.quit()
 	        os._exit(0)
 	    if event.type == KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     self.myAvatar.move(self.myAvatar.rect.x - 30) #move left
-#   Not sure if we want to do the write here or in tick (where it is now)
-#       it doesn't need to happen more often than here, but in the spirit of
-#       the clock-tick paradigm, it might be better to leave it in tick?
-#                    myPos = 'enemy='+str(self.myAvatar.rect.x)
-#                    self.p1Con.transport.write(myPos)
                 elif event.key == pygame.K_RIGHT:
                     self.myAvatar.move(self.myAvatar.rect.x + 30) #move right
-#                    myPos = 'enemy='+str(self.myAvatar.rect.x)
-#                    self.p1Con.transport.write(myPos)
                 elif event.key == pygame.K_SPACE:
                     #fire
                     x = self.myAvatar.rect.centerx
@@ -102,6 +95,11 @@ class GameSpace():
                 self.background.image = pygame.image.load('images/losescreen.jpg')
             self.screen.blit(self.background.image, self.background.rect)
             pygame.display.flip()
+            while 1: #catch window 'x' button event
+                for event in pygame.event.get():
+	            if event.type == QUIT:
+                        pygame.quit()
+                        os._exit(0)
 		
 # BACKGROUND
 class Background(pygame.sprite.Sprite):
@@ -169,7 +167,6 @@ class Acorn(pygame.sprite.Sprite):
     def tick(self):
         self.rect.y = self.rect.y - 40 
         if self.rect.colliderect(self.gs.target.rect) and self.hit == 0 and self.gs.target.show and not self.gs.target.beenHit:
-#            print 'P1 score: '+str(self.gs.score)
             self.hit = 1
             #update image to indicate hit target, and which player hit it
             self.gs.target.image = pygame.image.load('images/hit.png')
@@ -180,7 +177,6 @@ class Acorn(pygame.sprite.Sprite):
                     self.gs.myAvatar.win = 1
                     self.gs.gameOver = 1
             else:
-#                self.gs.target.image = pygame.image.load('images/hitP2.png')
                 self.gs.enemyAvatar.score = self.gs.enemyAvatar.score + 1
                 self.gs.p1Con.transport.write('player2score='+str(self.gs.enemyAvatar.score)+'\r\n')
                 if self.gs.enemyAvatar.score == 10:
@@ -220,7 +216,6 @@ class Target(pygame.sprite.Sprite):
     def tick(self):
         self.timePassed = self.timePassed + 1
         self.gs.p1Con.transport.write('targetTime='+str(self.timePassed)+'\r\n')
-#        print 'timePassed = '+str(self.timePassed)
         if not self.show and self.timePassed >= 15: #wait .25 second between hit and new target
             self.pos = random.randint(75,465) #new position somewhere inside the booth
             #write new position to player 2
@@ -239,11 +234,9 @@ class PlayerConnection(Protocol):
     def connectionMade(self):
 	# Create player connection
 	self.game = GameSpace(p1Con.getConnection(), reactor)
-#	print("player 1 connection made")
 	
     def dataReceived(self, data):
 	# server.py has sent data to player 2: update game
-#    	print 'data received from player2: ', data
         parts = data.split('=') # get label and value
         pos = parts[1].split('\r') #isolate number
         if parts[0] == 'enemy':
@@ -253,9 +246,6 @@ class PlayerConnection(Protocol):
             y = self.game.enemyAvatar.rect.y
             new_acorn = Acorn(self.game, 'images/acornP2.png', x, y, 0) #not owned by myAvatar
             self.game.acorns.append(new_acorn)
-#            elif parts[0] == 'quit':
-#                self.game.pygame.quit()
-#                os._exit(0)
 		
 
 class PlayerConnectionFactory(Factory):

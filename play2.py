@@ -6,13 +6,12 @@ from twisted.internet import reactor
 import sys, os, pygame, math
 from pygame.locals import *
 from twisted.internet.task import LoopingCall
-
+# ^^ I don't think we need this, since we're using callLater instead of loopingCall, but
+#   I didn't want to get rid of it until I/you had a chance to make sure it works without it
 
 # Function that loads images
 def load_image(name):
     image = pygame.image.load(name)
-#    image = image.convert()
-#    image.set_colorkey((255,255,255))
     return image, image.get_rect()
 
 # GAMESPACE
@@ -35,16 +34,13 @@ class GameSpace():
 	self.background = Background(self)
 	self.myAvatar = Avatar(self, 'images/squirrelP2.png', 'images/scores/player2_0.png', 500, 330, 525, 0, 1) #1 for ownership
         self.enemyAvatar = Avatar(self, 'images/squirrelP1.png', 'images/scores/player1_0.png', 10, 330, 0, 0, 0)
-#        self.myScore = Score(self, 'images/scores/player2_0.png', 0, 0)
-#        self.enemyScore = Score(self, 'images/scores/player1_0.png', 600, 0)
 	self.sprites = [self.enemyAvatar, self.myAvatar]
         self.target = Target(self)
         self.acorns = []
 
         # Score and Target stuff
         self.gameOver = 0
-#        random.seed() #seed random number generator from current time
-#   P1 is in charge of setting and communicating the target position
+        #   P1 is in charge of setting and communicating the target position
 
         # start game "loop"
         self.reactor.callLater(1/60, self.loop)
@@ -52,7 +48,6 @@ class GameSpace():
     def loop(self):
 	for event in pygame.event.get():
 	    if event.type == QUIT:
-#                self.p2Con.transport.write('quit=1\r\n')
 		pygame.quit()
 		os._exit(0)
             elif event.type == pygame.KEYDOWN:
@@ -101,13 +96,16 @@ class GameSpace():
                 self.background.image = pygame.image.load('images/losescreen.jpg')
             self.screen.blit(self.background.image, self.background.rect)
             pygame.display.flip()
+            while 1: # catch window 'x' button event
+                for event in pygame.event.get():
+                    if event.type == QUIT:
+                        pygame.quit()
+                        os._exit(0)
 
 # BACKGROUND
 class Background(pygame.sprite.Sprite):
     def __init__(self, gs):
 	pygame.sprite.Sprite.__init__(self)
-#        self.image = pygame.image.load('images/booth.jpg')
-#        self.rect = self.image.get_rect()
 	self.image, self.rect = load_image('images/booth.jpg') 
 	self.rect.topleft = 0, 0
     def tick(self):
@@ -170,14 +168,9 @@ class Acorn(pygame.sprite.Sprite):
     def tick(self):
         self.rect.y = self.rect.y - 40
         if self.rect.colliderect(self.gs.target.rect) and self.hit == 0 and self.gs.target.show and not self.gs.target.beenHit:
-#            self.gs.score = self.gs.score + 1
             self.hit = 1
             #update image to indicate hit target and which player hit it
             self.gs.target.image = pygame.image.load('images/hit.png')
-
-#            else:
-#            self.gs.target.image = pygame.image.load('images/hitP1.png')
-#                self.gs.enemyAvatar.score = self.gs.enemyAvatar.score + 1
             #set "timer" before target disappears
             self.gs.target.timePassed = -5
             self.gs.target.beenHit = 1
@@ -210,8 +203,6 @@ class Target(pygame.sprite.Sprite):
             pass
 
     def tick(self):
-#        print 'self.show = '+str(self.show)
-#        print 'self.timePassed = '+str(self.timePassed)
         #don't update target position/timePassed, because that is synced from P1 via a write
         if not self.show and self.timePassed >= 15:
             self.move(self.pos)
@@ -226,17 +217,13 @@ class Target(pygame.sprite.Sprite):
 class PlayerConnection(Protocol):
     def connectionMade(self):
 	# Create player connection
-#	print'player 2 connection made'
 	self.game = GameSpace(p2Con.getConnection(),reactor)
 
     def dataReceived(self, data):
 	# server.py has sent data to player 1: update game
-#	print 'data received from player1: ', data
         datas = data.split('\n') #split writes
-#        print datas
         for name in datas:
             parts = name.split('=') #get label and value
-#            print parts
             if len(parts) == 2:
                 pos = parts[1].split('\r') #isolate number
             else:
@@ -249,7 +236,6 @@ class PlayerConnection(Protocol):
                 new_acorn = Acorn(self.game, 'images/acornP1.png', x, y, 0) #not owned by myAvatar
                 self.game.acorns.append(new_acorn)
             elif parts[0] == 'targetTime':
- #               print 'targetTime: '+pos[0]
                 self.game.target.timePassed = int(pos[0])
             elif parts[0] == 'targetPos':
                 self.game.target.pos = int(pos[0])
@@ -257,9 +243,6 @@ class PlayerConnection(Protocol):
                 self.game.enemyAvatar.score = int(pos[0])
             elif parts[0] == 'player2score':
                 self.game.myAvatar.score = int(pos[0])
-#            elif parts[0] == 'quit':
-#                self.game.pygame.quit()
-#                os._exit(0)
 
 
 class PlayerConnectionFactory(ClientFactory):
