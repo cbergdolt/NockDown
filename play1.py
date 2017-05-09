@@ -162,7 +162,7 @@ class Acorn(pygame.sprite.Sprite):
                 self.gs.myAvatar.score = self.gs.myAvatar.score + 1
             else:
                 self.gs.target.image = pygame.image.load('images/hitP2.png')
-                self.gs.myAvatar.score = self.gs.myAvatar.score + 1
+                self.gs.myAvatar.score = self.gs.enemyAvatar.score + 1
             #set "timer" before target disappears
             self.gs.target.timePassed = -5
             self.gs.target.beenHit = 1
