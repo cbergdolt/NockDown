@@ -157,12 +157,14 @@ class Acorn(pygame.sprite.Sprite):
 #            print 'P1 score: '+str(self.gs.score)
             self.hit = 1
             #update image to indicate hit target, and which player hit it
+            self.gs.target.image = pygame.image.load('images/hit.png')
             if self.ownership:
-                self.gs.target.image = pygame.image.load('images/hitP1.png')
                 self.gs.myAvatar.score = self.gs.myAvatar.score + 1
+                self.gs.p2Con.transport.write('player1score='+str(self.gs.myAvatar.score)+'\r\n')
             else:
-                self.gs.target.image = pygame.image.load('images/hitP2.png')
-                self.gs.myAvatar.score = self.gs.enemyAvatar.score + 1
+#                self.gs.target.image = pygame.image.load('images/hitP2.png')
+                self.gs.enemyAvatar.score = self.gs.enemyAvatar.score + 1
+                self.gs.p2Con.transport.write('player2score='+str(self.gs.enemyAvatar.score)+'\r\n')
             #set "timer" before target disappears
             self.gs.target.timePassed = -5
             self.gs.target.beenHit = 1

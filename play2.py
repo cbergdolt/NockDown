@@ -157,12 +157,10 @@ class Acorn(pygame.sprite.Sprite):
 #            self.gs.score = self.gs.score + 1
             self.hit = 1
             #update image to indicate hit target and which player hit it
-            if self.ownership:
-                self.gs.target.image = pygame.image.load('images/hitP2.png')
-                self.gs.myAvatar.score = self.gs.myAvatar.score + 1
-            else:
-                self.gs.target.image = pygame.image.load('images/hitP1.png')
-                self.gs.enemyAvatar.score = self.gs.enemyAvatar.score + 1
+            self.gs.target.image = pygame.image.load('images/hit.png')
+#            else:
+#            self.gs.target.image = pygame.image.load('images/hitP1.png')
+#                self.gs.enemyAvatar.score = self.gs.enemyAvatar.score + 1
             #set "timer" before target disappears
             self.gs.target.timePassed = -5
             self.gs.target.beenHit = 1
@@ -238,6 +236,10 @@ class PlayerConnection(Protocol):
                 self.game.target.timePassed = int(pos[0])
             elif parts[0] == 'targetPos':
                 self.game.target.pos = int(pos[0])
+            elif parts[0] == 'player1score':
+                self.game.enemyAvatar.score = int(pos[0])
+            elif parts[0] == 'player2score':
+                self.game.myAvatar.score = int(pos[0])
 #            elif parts[0] == 'quit':
 #                self.game.pygame.quit()
 #                os._exit(0)
