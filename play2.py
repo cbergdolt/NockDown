@@ -42,6 +42,7 @@ class GameSpace():
         self.acorns = []
 
         # Score and Target stuff
+        self.gameOver = 0
 #        random.seed() #seed random number generator from current time
 #   P1 is in charge of setting and communicating the target position
 
@@ -78,20 +79,28 @@ class GameSpace():
                 acorn.tick()
         self.target.tick()
 
-	# Update screen
-	self.screen.fill(self.back)
-        self.screen.blit(self.background.image, self.background.rect)
-        if self.target.show:
-            self.screen.blit(self.target.image, self.target.rect)
-	for i in self.sprites:
-	    self.screen.blit(i.image, i.rect)
-            self.screen.blit(i.scorecard.image, i.scorecard.rect)
-        for acorn in self.acorns:
-            if not acorn.hit:
-                self.screen.blit(acorn.image, acorn.rect)
-	pygame.display.flip()
+        if !self.gameOver:
+            # Update screen
+            self.screen.fill(self.back)
+            self.screen.blit(self.background.image, self.background.rect)
+            if self.target.show:
+                self.screen.blit(self.target.image, self.target.rect)
+	    for i in self.sprites:
+	        self.screen.blit(i.image, i.rect)
+                self.screen.blit(i.scorecard.image, i.scorecard.rect)
+            for acorn in self.acorns:
+                if not acorn.hit:
+                    self.screen.blit(acorn.image, acorn.rect)
+            pygame.display.flip()
 
-        self.reactor.callLater(1/60, self.loop)
+            self.reactor.callLater(1/60, self.loop)
+        else:
+            if self.myAvatar.win:
+                self.background.image = pygame.image.load('images/winscreen.jpg')
+            else:
+                self.background.image = pygame.image.load('images/losescreen.jpg')
+            self.screen.blit(self.background.image, self.background.rect)
+            pygame.display.flip()
 
 # BACKGROUND
 class Background(pygame.sprite.Sprite):
@@ -113,6 +122,7 @@ class Avatar(pygame.sprite.Sprite):
 	self.rect.topleft = x, y
         self.ownership = owner
         self.score = 0
+        self.win = 0
         self.scorecard = Score(self, scoreimage, scorex, scorey)
 
     def move(self, xpos):
@@ -158,6 +168,14 @@ class Acorn(pygame.sprite.Sprite):
             self.hit = 1
             #update image to indicate hit target and which player hit it
             self.gs.target.image = pygame.image.load('images/hit.png')
+            if self.gs.myAvatar.score == 10:
+                self.gs.myAvatar.win = 1
+                self.gs.gameOver = 1
+            elif self.gs.enemyAvatar.score == 10:
+                self.gs.enemyAvatar.win = 1
+                self.gs.gameOver = 1
+            else:
+                pass
 #            else:
 #            self.gs.target.image = pygame.image.load('images/hitP1.png')
 #                self.gs.enemyAvatar.score = self.gs.enemyAvatar.score + 1
