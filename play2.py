@@ -211,12 +211,12 @@ class Target(pygame.sprite.Sprite):
 class PlayerConnection(Protocol):
     def connectionMade(self):
 	# Create player connection
-	print'player 2 connection made'
+#	print'player 2 connection made'
 	self.game = GameSpace(p2Con.getConnection(),reactor)
 
     def dataReceived(self, data):
 	# server.py has sent data to player 1: update game
-	print 'data received from player1: ', data
+#	print 'data received from player1: ', data
         datas = data.split('\n') #split writes
 #        print datas
         for name in datas:

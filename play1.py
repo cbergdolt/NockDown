@@ -154,7 +154,7 @@ class Acorn(pygame.sprite.Sprite):
     def tick(self):
         self.rect.y = self.rect.y - 40 
         if self.rect.colliderect(self.gs.target.rect) and self.hit == 0 and self.gs.target.show and not self.gs.target.beenHit:
-            print 'P1 score: '+str(self.gs.score)
+#            print 'P1 score: '+str(self.gs.score)
             self.hit = 1
             #update image to indicate hit target, and which player hit it
             if self.ownership:
@@ -197,7 +197,7 @@ class Target(pygame.sprite.Sprite):
     def tick(self):
         self.timePassed = self.timePassed + 1
         self.gs.p1Con.transport.write('targetTime='+str(self.timePassed)+'\r\n')
-        print 'timePassed = '+str(self.timePassed)
+#        print 'timePassed = '+str(self.timePassed)
         if not self.show and self.timePassed >= 15: #wait .25 second between hit and new target
             self.pos = random.randint(75,465) #new position somewhere inside the booth
             #write new position to player 2
@@ -216,11 +216,11 @@ class PlayerConnection(Protocol):
     def connectionMade(self):
 	# Create player connection
 	self.game = GameSpace(p1Con.getConnection(), reactor)
-	print("player 1 connection made")
+#	print("player 1 connection made")
 	
     def dataReceived(self, data):
 	# server.py has sent data to player 2: update game
-    	print 'data received from player2: ', data
+#    	print 'data received from player2: ', data
         parts = data.split('=') # get label and value
         pos = parts[1].split('\r') #isolate number
         if parts[0] == 'enemy':
